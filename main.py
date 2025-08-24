@@ -9,11 +9,19 @@ from led_detection import detect_leds
 from pose_estimation import identify_and_order, estimate_pose
 from display import draw_raw_points, draw_pattern, draw_reprojections, draw_hud
 from web_stream import MJPEGServer  # <-- tiny HTTP MJPEG server you copied
+import platform
 
-# ---------- Runtime flags ----------
-HEADLESS = os.environ.get("HEADLESS", "0") == "1" or os.environ.get("DISPLAY", "") == ""
-STREAM   = os.environ.get("HEADLESS_STREAM", "0") == "1"  # stream overlays to http://<pi>:8080/
-SNAP_EVERY_N = int(os.environ.get("SNAP_EVERY_N", "0"))   # save snapshot every N frames (0=off)
+# If user sets HEADLESS explicitly, respect it. Otherwise, auto:
+# - On Linux: headless when DISPLAY is empty (typical over SSH)
+# - On Windows/macOS: default to GUI (headless=False)
+_headless_env = os.environ.get("HEADLESS", "").strip()
+if _headless_env != "":
+    HEADLESS = _headless_env == "1"
+else:
+    HEADLESS = (platform.system() == "Linux" and os.environ.get("DISPLAY", "") == "")
+
+STREAM = os.environ.get("HEADLESS_STREAM", "0") == "1"
+SNAP_EVERY_N = int(os.environ.get("SNAP_EVERY_N", "0"))
 JPEG_QUALITY = int(os.environ.get("JPEG_QUALITY", "80"))
 
 # ---------- Pattern geometry (meters) ----------
