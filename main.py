@@ -71,8 +71,8 @@ def main():
                     Ra = ap["range_m"]
                     hud += [
                         "Analytic:",
-                        f"RPY: φ={φa:6.1f}deg  θ={θa:6.1f}deg  ψ={ψa:6.1f}deg",
-                        f"LOS: Az={az_a:6.1f}deg  El={el_a:6.1f}deg   Range = {Ra:6.3f} m",
+                        f"R{φa:6.1f}deg  P{θa:6.1f}deg  Y{ψa:6.1f}deg",
+                        f"LOS: Az{az_a:6.1f}deg  El{el_a:6.1f}deg   R{Ra:6.3f} m",
                     ]
                 else:
                     hud += ["Analytic: unavailable"]
@@ -85,8 +85,8 @@ def main():
                     az_p, el_p = _los_from_center(C, camMatrix)  # reuse center-based LOS
                     hud += [
                         "PnP:",
-                        f"RPY: φ={φp:6.1f}deg  θ={θp:6.1f}deg  ψ={ψp:6.1f}deg",
-                        f"LOS: Az={az_p:6.1f}deg  El={el_p:6.1f}deg   Range= {Rp:6.3f} m",
+                        f"R{φp:6.1f}deg  P{θp:6.1f}deg  Y{ψp:6.1f}deg",
+                        f"LOS: Az{az_p:6.1f}deg  El{el_p:6.1f}deg R{Rp:6.3f} m",
                     ]
                     # If your pose_estimation adds reproj/z_cam later, this will draw them safely:
                     draw_reprojections(vis, pnp.get("reproj", None), pnp.get("z_cam", None))
@@ -100,8 +100,20 @@ def main():
         draw_hud(vis, hud, fps=fps)
 
         cv2.imshow("VBN | RPY + LOS + Range", vis)
+
+        # PRINTING TO CONSOLE
+        print(f"\rFPS: {fps:5.1f}", end="")
+        print("LEDS detected:", len(pts), end="; ")
+        if len(pts) >= 5:
+            print("Pattern OK.", end="; ")
+            print("LEDs Postion (px):", np.array2string(pts, precision=1, floatmode='fixed'), end="; ")
+
         if cv2.waitKey(1) & 0xFF in (ord('q'), 27):
             break
+
+        if cv2.waitKey(1) & 0xFF in (ord('s'), ord(' ')):
+            cv2.imwrite(f"vbn_{int(time.time())}.png", vis)
+            print(" [saved]", end="")   
 
     cap.release()
     cv2.destroyAllWindows()

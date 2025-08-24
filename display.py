@@ -47,20 +47,36 @@ def draw_pattern(img, center_uv, offset_uv, outer_uv):
 def draw_reprojections(img, reproj, z_cam=None, color=(0, 255, 0), thickness=2):
     """
     Draw reprojected model points. If z_cam is provided, only draw with z>0 and finite.
+    Robust to dtype=object / NaNs / offscreen values.
     """
     if reproj is None:
         return img
-    reproj = np.asarray(reproj).reshape(-1, 2)
+
+    # Force to numeric array; object dtypes cause OpenCV grief.
+    R = np.asarray(reproj, dtype=np.float64).reshape(-1, 2)
+
+    Z = None
     if z_cam is not None:
-        z_cam = np.asarray(z_cam).reshape(-1)
-    for i, q in enumerate(reproj):
+        Z = np.asarray(z_cam, dtype=np.float64).reshape(-1)
+
+    h, w = img.shape[:2]
+    for i in range(R.shape[0]):
+        q = R[i]
         if not np.all(np.isfinite(q)):
             continue
-        if z_cam is not None:
-            z = z_cam[i]
+        if Z is not None:
+            z = Z[i]
             if (not np.isfinite(z)) or (z <= 1e-6):
                 continue
-        cv2.drawMarker(img, _to_int_pair(q), color, markerType=_MARKER_TYPE, thickness=thickness)
+
+        # round → Python int; skip points way off the image
+        u = int(round(float(q[0])))
+        v = int(round(float(q[1])))
+        if (u < -1000) or (u > w + 1000) or (v < -1000) or (v > h + 1000):
+            continue
+
+        cv2.drawMarker(img, (u, v), color, markerType=_MARKER_TYPE, thickness=thickness)
+
     return img
 
 def draw_hud(img, lines, fps=None, origin=(10, 30), line_start_y=60, line_gap=22):
